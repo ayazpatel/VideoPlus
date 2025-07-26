@@ -1,25 +1,22 @@
 package com.ayaz.userservice;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
-import org.springframework.context.annotation.Bean;
-import org.springframework.web.reactive.function.client.WebClient;
 
+/**
+ * Main application class for User Service
+ * This class starts the Spring Boot application and enables service discovery
+ */
 @SpringBootApplication
 @EnableDiscoveryClient
 public class UserServiceApplication {
+    
+    /**
+     * Main method - entry point for the application
+     * Starts the Spring Boot application
+     */
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(UserServiceApplication.class);
-        app.setWebApplicationType(WebApplicationType.REACTIVE); // Set to REACTIVE for WebFlux
-        app.run(args);
-    }
-
-    @Bean
-    @LoadBalanced // Enable client-side load balancing for WebClient
-    public WebClient.Builder webClientBuilder() {
-        return WebClient.builder();
+        SpringApplication.run(UserServiceApplication.class, args);
     }
 }

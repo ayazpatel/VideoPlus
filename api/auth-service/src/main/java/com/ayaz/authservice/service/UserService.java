@@ -2,32 +2,59 @@ package com.ayaz.authservice.service;
 
 import com.ayaz.authservice.model.User;
 import com.ayaz.authservice.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
+/**
+ * Service class for user-related business logic
+ * Handles user operations like saving, finding, and validating users
+ */
 @Service
-@RequiredArgsConstructor
-public class UserService implements ReactiveUserDetailsService {
+public class UserService {
 
     private final UserRepository userRepository;
 
-    @Override
-    public Mono<UserDetails> findByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UsernameNotFoundException("User not found with username: " + username)))
-                .map(user -> user);
+    // Constructor - initializes the service with UserRepository dependency
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    public Mono<UserDetails> loadUserById(String id) {
-        return userRepository.findById(id)
-                .map(user -> (UserDetails) user);
+    /**
+     * Finds a user by username
+     * Returns the user if found, null if not found
+     */
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
-    public Mono<User> save(User user) {
+    /**
+     * Finds a user by ID
+     * Returns the user if found, null if not found
+     */
+    public User findById(String id) {
+        return userRepository.findById(id).orElse(null);
+    }
+
+    /**
+     * Saves a user to the database
+     * Returns the saved user with generated ID
+     */
+    public User save(User user) {
         return userRepository.save(user);
+    }
+
+    /**
+     * Checks if a user exists with the given username
+     * Returns true if exists, false otherwise
+     */
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    /**
+     * Checks if a user exists with the given email
+     * Returns true if exists, false otherwise
+     */
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 }

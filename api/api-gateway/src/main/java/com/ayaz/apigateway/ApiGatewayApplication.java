@@ -5,16 +5,19 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 /**
- * Main application class for the API Gateway.
- * @EnableDiscoveryClient enables the application to register with a discovery server like Eureka.
+ * Main application class for API Gateway Service
+ * This class starts the Spring Boot application and enables service discovery
  */
 @SpringBootApplication
 @EnableDiscoveryClient
 public class ApiGatewayApplication {
 
+    /**
+     * Main method - entry point for the application
+     * Starts the Spring Boot application
+     */
     public static void main(String[] args) {
-        System.out.println("<<<<< API GATEWAY IS STARTING UP, CHECK FOR THIS MESSAGE! >>>>>");
+        System.out.println("API Gateway is starting up...");
         SpringApplication.run(ApiGatewayApplication.class, args);
     }
-
 }

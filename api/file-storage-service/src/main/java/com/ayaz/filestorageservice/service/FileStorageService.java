@@ -1,20 +1,18 @@
 package com.ayaz.filestorageservice.service;
 
 import io.minio.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.InputStream;
 import java.util.UUID;
 
+/**
+ * Service class for file storage operations using MinIO
+ * Handles file upload and delete operations
+ */
 @Service
-@RequiredArgsConstructor
 public class FileStorageService {
 
     private final MinioClient minioClient;
@@ -22,57 +20,71 @@ public class FileStorageService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
-    public Mono<String> uploadFile(FilePart filePart, String userId, String fileType) {
-        String objectName = String.format("%s/%s/%s-%s", userId, fileType, UUID.randomUUID(), filePart.filename());
-
-        return Mono.fromCallable(() -> {
-            // Check if bucket exists, create if not. This is a blocking call.
-            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-            if (!found) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-            }
-
-            // A PipedInputStream is used to bridge the reactive data buffer to the blocking InputStream
-            PipedInputStream pipedInputStream = new PipedInputStream();
-            PipedOutputStream pipedOutputStream = new PipedOutputStream(pipedInputStream);
-
-            // The data from the reactive FilePart is written to the PipedOutputStream
-            filePart.content().doOnComplete(() -> {
-                try {
-                    pipedOutputStream.close();
-                } catch (IOException ignored) {}
-            }).subscribe(dataBuffer -> {
-                try {
-                    pipedOutputStream.write(dataBuffer.asByteBuffer().array());
-                } catch (IOException ignored) {}
-            });
-
-            // The blocking MinIO client reads from the PipedInputStream
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectName)
-                            .stream(pipedInputStream, -1, 10485760) // Use -1 for size to let MinIO handle it
-                            .contentType(filePart.headers().getContentType().toString())
-                            .build()
-            );
-
-            return objectName; // Return the generated object name, not the full URL
-        }).subscribeOn(Schedulers.boundedElastic()); // Execute the blocking code on a separate thread pool
+    // Constructor - initializes the service with MinioClient dependency
+    public FileStorageService(MinioClient minioClient) {
+        this.minioClient = minioClient;
     }
 
-    public Mono<Void> deleteFile(String objectName) {
-        return Mono.<Void>fromRunnable(() -> {
-            try {
-                minioClient.removeObject(
-                        RemoveObjectArgs.builder()
-                                .bucket(bucketName)
-                                .object(objectName)
-                                .build()
-                );
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to delete file from MinIO", e);
-            }
-        }).subscribeOn(Schedulers.boundedElastic()).then();
+    /**
+     * Uploads a file to MinIO storage
+     * Creates a unique object name and stores the file
+     * Returns the object name/key of the uploaded file
+     */
+    public String uploadFile(MultipartFile file, String userId, String fileType) throws Exception {
+        // Generate unique object name: userId/fileType/UUID-originalFilename
+        String objectName = String.format("%s/%s/%s-%s", 
+            userId, 
+            fileType, 
+            UUID.randomUUID().toString(), 
+            file.getOriginalFilename()
+        );
+
+        // Check if bucket exists, create if not
+        boolean found = minioClient.bucketExists(
+            BucketExistsArgs.builder()
+                .bucket(bucketName)
+                .build()
+        );
+        
+        if (!found) {
+            // Create bucket if it doesn't exist
+            minioClient.makeBucket(
+                MakeBucketArgs.builder()
+                    .bucket(bucketName)
+                    .build()
+            );
+        }
+
+        // Get input stream from the multipart file
+        InputStream inputStream = file.getInputStream();
+        
+        // Upload file to MinIO
+        minioClient.putObject(
+            PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .stream(inputStream, file.getSize(), -1) // Use actual file size
+                .contentType(file.getContentType())
+                .build()
+        );
+
+        // Close the input stream
+        inputStream.close();
+
+        return objectName; // Return the generated object name
+    }
+
+    /**
+     * Deletes a file from MinIO storage
+     * Removes the file using the provided object name/key
+     */
+    public void deleteFile(String objectName) throws Exception {
+        // Delete file from MinIO
+        minioClient.removeObject(
+            RemoveObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .build()
+        );
     }
 }

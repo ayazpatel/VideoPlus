@@ -1,192 +1,129 @@
 package com.ayaz.userservice.controller;
 
-import com.ayaz.userservice.dto.UserDtos;
 import com.ayaz.userservice.model.User;
 import com.ayaz.userservice.repository.UserRepository;
-import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.MultipartBodyBuilder;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
-import java.util.List;
 
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * REST Controller for user management operations
+ * Handles user profile operations like get, update, delete
+ */
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
 public class UserController {
 
     private final UserRepository userRepository;
-    private final WebClient.Builder webClientBuilder;
-    @Value("${auth.service.internal.url}")
-    private String authServiceUrl;
-    @Value("${minio.endpoint}")
-    private String minioEndpoint;
-    @Value("${minio.bucket-name}")
-    private String bucketName;
 
-    private Mono<String> uploadFileToStorageService(MultipartFile file, String userId, String fileType) {
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("file", file.getResource());
-
-        return webClientBuilder.build().post()
-                .uri("http://file-storage-service/api/files/upload?fileType={fileType}", fileType)
-                .header("X-User-ID", userId)
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(BodyInserters.fromMultipartData(builder.build()))
-                .retrieve()
-                .bodyToMono(Map.class)
-                .map(responseMap -> (String) responseMap.get("objectName"));
+    // Constructor - initializes the controller with required dependencies
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    private void deleteFileFromStorageService(String objectName) {
-        if (StringUtils.hasText(objectName)) {
-            webClientBuilder.build()
-                    .method(HttpMethod.DELETE)
-                    .uri("http://file-storage-service/api/files/delete")
-                    .body(BodyInserters.fromValue(Map.of("objectName", objectName)))
-                    .retrieve()
-                    .toBodilessEntity()
-                    .subscribe();
+    /**
+     * Gets all users from the database
+     * Returns a list of all users
+     */
+    @GetMapping
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return ResponseEntity.ok(users);
+    }
+
+    /**
+     * Gets a specific user by their ID
+     * Returns the user if found, 404 if not found
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable String id) {
+        Optional<User> user = userRepository.findById(id);
+        if (user.isPresent()) {
+            return ResponseEntity.ok(user.get());
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 
-    private String constructPublicUrl(String objectName) {
-        if (!StringUtils.hasText(objectName)) {
-            return null;
+    /**
+     * Gets a user by their username
+     * Returns the user if found, 404 if not found
+     */
+    @GetMapping("/username/{username}")
+    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+        User user = userRepository.findByUsername(username);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.notFound().build();
         }
-        return minioEndpoint + "/" + bucketName + "/" + objectName;
     }
 
-    private UserDtos.UserProfileResponse toUserProfileResponse(User user) {
-        UserDtos.UserProfileResponse response = new UserDtos.UserProfileResponse();
-        response.setId(user.getId());
-        response.setFullName(user.getFullName());
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setHistory(user.getHistory());
-        response.setAvatarUrl(constructPublicUrl(user.getAvatar()));
-        response.setCoverImageUrl(constructPublicUrl(user.getCoverImage()));
-        return response;
-    }
-
-    private java.util.List<String> convertHistoryToStrings(java.util.List<org.bson.types.ObjectId> history) {
-        if (history == null) {
-            return java.util.Collections.emptyList();
+    /**
+     * Creates a new user
+     * Returns the created user with 201 status
+     */
+    @PostMapping
+    public ResponseEntity<User> createUser(@RequestBody User user) {
+        // Check if username already exists
+        if (userRepository.existsByUsername(user.getUsername())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
-        return history.stream()
-                .map(org.bson.types.ObjectId::toString)
-                .collect(java.util.stream.Collectors.toList());
+        
+        // Check if email already exists
+        if (userRepository.existsByEmail(user.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        
+        User savedUser = userRepository.save(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
     }
 
-    @GetMapping("/me")
-    public Mono<ResponseEntity<UserDtos.UserProfileResponse>> getCurrentUser(@RequestHeader("X-User-ID") String userId) {
-        return userRepository.findById(userId)
-                .map(this::toUserProfileResponse)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    /**
+     * Updates an existing user
+     * Returns the updated user if successful, 404 if user not found
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User updatedUser) {
+        Optional<User> existingUser = userRepository.findById(id);
+        if (!existingUser.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        User user = existingUser.get();
+        
+        // Update fields if they are provided
+        if (updatedUser.getFullName() != null) {
+            user.setFullName(updatedUser.getFullName());
+        }
+        if (updatedUser.getEmail() != null) {
+            user.setEmail(updatedUser.getEmail());
+        }
+        if (updatedUser.getAvatar() != null) {
+            user.setAvatar(updatedUser.getAvatar());
+        }
+        if (updatedUser.getCoverImage() != null) {
+            user.setCoverImage(updatedUser.getCoverImage());
+        }
+        
+        User savedUser = userRepository.save(user);
+        return ResponseEntity.ok(savedUser);
     }
 
-    @PatchMapping("/account")
-    public Mono<ResponseEntity<User>> updateAccount(@RequestHeader("X-User-ID") String userId, @RequestBody UserDtos.AccountUpdateRequest request) {
-        return userRepository.findById(userId)
-                .flatMap(user -> {
-                    user.setFullName(request.getFullName());
-                    user.setEmail(request.getEmail());
-                    return userRepository.save(user);
-                })
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-    }
-
-    @PostMapping("/change-password")
-    public Mono<ResponseEntity<String>> changePassword(@RequestHeader("X-User-ID") String userId, @RequestBody UserDtos.PasswordChangeRequest request) {
-        UserDtos.InternalPasswordChangeRequest internalRequest = new UserDtos.InternalPasswordChangeRequest();
-        internalRequest.setUserId(userId);
-        internalRequest.setOldPassword(request.getOldPassword());
-        internalRequest.setNewPassword(request.getNewPassword());
-
-        return webClientBuilder.build().post()
-                .uri(authServiceUrl + "/change-password")
-                .bodyValue(internalRequest)
-                .retrieve()
-                .toBodilessEntity()
-                .map(response -> ResponseEntity.status(response.getStatusCode()).body("Password changed successfully"))
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to change password: " + e.getMessage())));
-    }
-
-    @PatchMapping("/avatar")
-    public Mono<ResponseEntity<UserDtos.UserProfileResponse>> updateAvatar(@RequestHeader("X-User-ID") String userId, @RequestParam("avatar") MultipartFile file) {
-        return userRepository.findById(userId)
-                .flatMap(user -> {
-                    String oldAvatarKey = user.getAvatar();
-                    return uploadFileToStorageService(file, userId, "avatar")
-                            .flatMap(newAvatarKey -> {
-                                user.setAvatar(newAvatarKey);
-                                deleteFileFromStorageService(oldAvatarKey);
-                                return userRepository.save(user);
-                            });
-                })
-                .map(this::toUserProfileResponse)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-    }
-
-    @PatchMapping("/cover-image")
-    public Mono<ResponseEntity<UserDtos.UserProfileResponse>> updateCoverImage(@RequestHeader("X-User-ID") String userId, @RequestParam("coverImage") MultipartFile file) {
-        return userRepository.findById(userId)
-                .flatMap(user -> {
-                    String oldCoverImageKey = user.getCoverImage();
-                    return uploadFileToStorageService(file, userId, "cover-image")
-                            .flatMap(newCoverImageKey -> {
-                                user.setCoverImage(newCoverImageKey);
-                                deleteFileFromStorageService(oldCoverImageKey);
-                                return userRepository.save(user);
-                            });
-                })
-                .map(this::toUserProfileResponse)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-    }
-
-//    @GetMapping("/history")
-//    public Mono<ResponseEntity<Object>> getWatchHistory(@RequestHeader("X-User-ID") String userId) {
-//        return userRepository.findById(userId)
-//                .map(user -> {
-//                    List<org.bson.types.ObjectId> historyList = user.getHistory();
-//
-//                    // Check if history is null or empty
-//                    if (historyList == null || historyList.isEmpty()) {
-//                        // Return a Map containing the custom message
-//                        Map<String, String> responseMessage = Map.of("message", "no history of user available");
-//                        return ResponseEntity.ok((Object) responseMessage);
-//                    } else {
-//                        // Otherwise, convert the history and return the list
-//                        List<String> historyStrings = convertHistoryToStrings(historyList);
-//                        return ResponseEntity.ok((Object) historyStrings);
-//                    }
-//                })
-//                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-//    }
-
-    @GetMapping("/history")
-    public Mono<ResponseEntity<List<String>>> getWatchHistory(@RequestHeader("X-User-ID") String userId) {
-        return userRepository.findById(userId)
-                .map(user -> {
-                    // Safely handle a null history list by converting it to an empty list
-                    List<org.bson.types.ObjectId> history = user.getHistory();
-                    return history != null ? history : java.util.Collections.<org.bson.types.ObjectId>emptyList();
-                })
-                .map(this::convertHistoryToStrings) // Convert ObjectId to String
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+    /**
+     * Deletes a user by their ID
+     * Returns 204 No Content if successful, 404 if user not found
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        if (!userRepository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        userRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
