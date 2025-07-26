@@ -1,0 +1,48 @@
+version: '3.8'
+services:
+  discovery-server:
+    build: ./api/discovery-server
+    ports:
+      - "8761:8761"
+    networks:
+      - video-plus-network
+
+  api-gateway:
+    build: ./api/api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - discovery-server
+    networks:
+      - video-plus-network
+
+  auth-service:
+    build: ./api/auth-service
+    ports:
+      - "9001:9001"
+    depends_on:
+      - discovery-server
+    networks:
+      - video-plus-network
+
+  user-service:
+    build: ./api/user-service
+    ports:
+      - "9002:9002"
+    depends_on:
+      - discovery-server
+    networks:
+      - video-plus-network
+
+  file-storage-service:
+    build: ./api/file-storage-service
+    ports:
+      - "9003:9003"
+    depends_on:
+      - discovery-server
+    networks:
+      - video-plus-network
+
+networks:
+  video-plus-network:
+    driver: bridge
