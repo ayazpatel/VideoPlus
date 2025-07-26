@@ -18,7 +18,6 @@ public class FileController {
 
     private final FileStorageService fileStorageService;
 
-    // Constructor - initializes the controller with FileStorageService dependency
     public FileController(FileStorageService fileStorageService) {
         this.fileStorageService = fileStorageService;
     }

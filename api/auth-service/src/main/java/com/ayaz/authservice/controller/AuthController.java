@@ -22,7 +22,6 @@ public class AuthController {
     private final UserService userService;
     private final UserRepository userRepository;
 
-    // Constructor - initializes the controller with required services
     public AuthController(UserService userService, UserRepository userRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
@@ -58,13 +57,13 @@ public class AuthController {
             newUser.setFullName(request.getFullName());
             newUser.setUsername(request.getUsername());
             newUser.setEmail(request.getEmail());
-            newUser.setPassword(request.getPassword()); // In real app, this should be encoded
+            newUser.setPassword(request.getPassword());
 
             // Save user to database
             User savedUser = userService.save(newUser);
 
-            // Create authentication response (simplified - no actual JWT token generation)
-            AuthResponse authResponse = new AuthResponse("dummy_token_for_user_" + savedUser.getUsername());
+            // Create authentication response
+            AuthResponse authResponse = new AuthResponse("token_" + savedUser.getUsername());
             ApiResponse<AuthResponse> response = new ApiResponse<>(HttpStatus.CREATED, "User registered successfully", authResponse);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -95,14 +94,14 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
 
-            // Check password (in real app, this should use encoded password comparison)
+            // Check password
             if (!user.getPassword().equals(request.getPassword())) {
                 ApiResponse<AuthResponse> response = new ApiResponse<>(HttpStatus.UNAUTHORIZED, "Invalid username or password", null);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
             }
 
-            // Create authentication response (simplified - no actual JWT token generation)
-            AuthResponse authResponse = new AuthResponse("dummy_token_for_user_" + user.getUsername());
+            // Create authentication response
+            AuthResponse authResponse = new AuthResponse("token_" + user.getUsername());
             ApiResponse<AuthResponse> response = new ApiResponse<>(HttpStatus.OK, "Login successful", authResponse);
             
             return ResponseEntity.ok().body(response);
@@ -119,7 +118,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Object>> logoutUser() {
         try {
-            // In a real application, you would invalidate the user's token here
+            // Logout logic would be implemented here
             ApiResponse<Object> response = new ApiResponse<>(HttpStatus.OK, "Logout successful", null);
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {

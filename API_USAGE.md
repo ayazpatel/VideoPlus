@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-VideoPlus is a Spring Boot microservices-based application designed for video management and storage. The architecture follows a simple, beginner-friendly approach with minimal dependencies.
+VideoPlus is a Spring Boot microservices-based application designed for video management and storage. The architecture follows clean design principles with minimal dependencies.
 
 ### Service Architecture
 
@@ -14,22 +14,22 @@ VideoPlus is a Spring Boot microservices-based application designed for video ma
                               │
                               ├─────────────────────────────┐
                               │                             │
-                       ┌──────▼──────┐              ┌──────▼──────┐
+                       ┌──────▼──────┐              ┌───────▼─────┐
                        │ Auth Service│              │User Service │
                        │(Port: 8081) │              │(Port: 8082) │
                        └─────────────┘              └─────────────┘
-                              │
-                       ┌──────▼──────┐
-                       │File Storage │
-                       │ Service     │
-                       │(Port: 8083) │
-                       └─────────────┘
-                              │
-                       ┌──────▼──────┐
-                       │   MinIO     │
-                       │ Object      │
-                       │ Storage     │
-                       └─────────────┘
+                                                           │
+                                                    ┌──────▼──────┐
+                                                    │File Storage │
+                                                    │ Service     │
+                                                    │(Port: 8083) │
+                                                    └─────────────┘
+                                                           │
+                                                    ┌──────▼──────┐
+                                                    │   MinIO     │
+                                                    │ Object      │
+                                                    │ Storage     │
+                                                    └─────────────┘
 ```
 
 ### Core Services
@@ -572,10 +572,10 @@ All services return consistent error responses:
 ## Development Notes
 
 ### Code Style
-- No Lombok - all getters/setters are manually written
-- Simple, blocking code - no reactive programming
-- Minimal dependencies - only essential Spring components
-- Beginner-friendly - well-commented and straightforward
+- Manual getters/setters for clarity and maintainability
+- Blocking I/O for simplicity and performance
+- Minimal dependencies for lean architecture
+- Clean, well-documented codebase
 
 ### Database Schema
 - MongoDB collections: `users`, `auth_users`

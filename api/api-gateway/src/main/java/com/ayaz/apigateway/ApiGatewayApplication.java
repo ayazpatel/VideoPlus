@@ -17,7 +17,6 @@ public class ApiGatewayApplication {
      * Starts the Spring Boot application
      */
     public static void main(String[] args) {
-        System.out.println("API Gateway is starting up...");
         SpringApplication.run(ApiGatewayApplication.class, args);
     }
 }

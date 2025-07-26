@@ -13,7 +13,6 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    // Constructor - initializes the service with UserRepository dependency
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }

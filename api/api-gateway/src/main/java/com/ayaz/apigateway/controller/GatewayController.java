@@ -17,12 +17,11 @@ public class GatewayController {
 
     private final RestTemplate restTemplate;
 
-    // Service URLs - in a real application, these would come from service discovery
+    // Service URLs - configured for local development
     private static final String AUTH_SERVICE_URL = "http://localhost:9001";
     private static final String USER_SERVICE_URL = "http://localhost:9002";  
     private static final String FILE_SERVICE_URL = "http://localhost:9003";
 
-    // Constructor - initializes the controller with RestTemplate
     public GatewayController(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
@@ -38,7 +37,7 @@ public class GatewayController {
         String targetUrl = AUTH_SERVICE_URL + path;
         
         try {
-            // Forward the request to auth service
+            // Forward request to auth service
             ResponseEntity<String> response;
             switch (method) {
                 case "POST":
@@ -73,7 +72,7 @@ public class GatewayController {
         String targetUrl = USER_SERVICE_URL + path;
         
         try {
-            // Forward the request to user service
+            // Forward request to user service
             ResponseEntity<String> response;
             switch (method) {
                 case "POST":
@@ -83,7 +82,7 @@ public class GatewayController {
                     restTemplate.put(targetUrl, body);
 
 
-                    
+
                     response = ResponseEntity.ok().build();
                     break;
                 case "DELETE":
@@ -111,7 +110,7 @@ public class GatewayController {
         String targetUrl = FILE_SERVICE_URL + path;
         
         try {
-            // Forward the request to file storage service
+            // Forward request to file storage service
             ResponseEntity<String> response;
             switch (method) {
                 case "POST":

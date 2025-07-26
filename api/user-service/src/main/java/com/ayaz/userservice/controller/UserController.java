@@ -19,7 +19,6 @@ public class UserController {
 
     private final UserRepository userRepository;
 
-    // Constructor - initializes the controller with required dependencies
     public UserController(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
