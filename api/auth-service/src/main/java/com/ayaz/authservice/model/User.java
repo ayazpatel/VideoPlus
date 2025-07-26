@@ -20,11 +20,9 @@ public class User {
     private String password;
     private String refreshToken;
 
-    // Default constructor - creates an empty User object
     public User() {
     }
 
-    // Constructor with all fields - creates a User with all information
     public User(String id, String fullName, String username, String email, String password, String refreshToken) {
         this.id = id;
         this.fullName = fullName;
