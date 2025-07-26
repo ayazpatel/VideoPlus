@@ -43,6 +43,26 @@ services:
     networks:
       - video-plus-network
 
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - video-plus-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    command: server /data
+    networks:
+      - video-plus-network
+
 networks:
   video-plus-network:
     driver: bridge
