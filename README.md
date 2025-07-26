@@ -1,7 +1,7 @@
 # VideoPlus - Microservices Architecture
 
 ## Overview
-VideoPlus is a microservices-based application built with Spring Boot 3.5.3. This version has been refactored to be beginner-friendly with minimal dependencies and manual implementations instead of using complex libraries.
+VideoPlus is a microservices-based application built with Spring Boot 3.5.3. The architecture uses minimal dependencies and manual implementations for better control and maintainability.
 
 ## Architecture
 The application consists of 5 main services:
@@ -55,11 +55,11 @@ The application consists of 5 main services:
 - **No Lombok**: All getters/setters are manually implemented
 - **Minimal Dependencies**: Only essential Spring components
 - **Clean Code**: Well-structured and documented methods
-- **Traditional Spring Web**: Uses blocking I/O for simplicity
+- **Traditional Spring Web**: Uses blocking I/O for reliability
 
 ### ✅ **Professional Implementation**
 - Manual getter/setter methods for clarity
-- Simple authentication implementation
+- Direct authentication implementation
 - RESTful API design following best practices
 - Clear separation of concerns
 
